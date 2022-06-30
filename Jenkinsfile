@@ -44,7 +44,6 @@ pipeline {
         stage('Deploy on Server') {
             steps {
                 echo "Deploy on Server"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'uptime'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker pull ${params.ARTIFACTORY_URL}/${params.IMAGE}'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker logout ${params.ARTIFACTORY_URL}'"
