@@ -44,6 +44,17 @@ pipeline {
                 sh "docker logout ${params.ARTIFACTORY_URL}"
             }
         }
+        stage('Prepare Server') {
+            steps {
+                echo "Prepare Server"
+                catchError {
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo apt-get update && sudo apt-get install nginx -y'"
+                }
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo wget -O /etc/nginx/sites-available/default https://raw.githubusercontent.com/helijunky/ci-cd-test/main/nginx.conf'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo sed -i -e 's/SERVER_FQDN/${params.SERVER_FQDN}/g' /etc/nginx/sites-available/default'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo service nginx restart'"
+            }
+        }
         stage('Deploy on Server') {
             steps {
                 echo "Deploy on Server"
