@@ -5,6 +5,14 @@ pipeline {
         SERVER_LOGIN=credentials('linux')
     }
     parameters {
+        choice(name: 'BASE_INSTALLATION',
+            choices: ['WITH_BASE_INSTALLATION', 'NO'],
+            description: 'Choose to install the base installation on the server')
+
+        choice(name: 'MONGODB',
+            choices: ['REDEPLOY_MONGODB', 'NO'],
+            description: 'Choose to redeploy the mongodb on the server (loose user data)')
+
         string(name: 'ARTIFACTORY_URL',
                defaultValue: 'ptt-docker-local.bin.swisscom.com',
                description: 'Artifactory URL')
@@ -21,7 +29,7 @@ pipeline {
     stages {
         stage('Git checkout') {
             steps {
-                echo "Git checkout"
+                echo "Git checkout (for demonstration only)"
                 sh 'git --version'
                 git branch: 'main', url: 'https://github.com/helijunky/ci-cd-test.git'
             }
@@ -29,8 +37,8 @@ pipeline {
         stage('Build Docker image') {
             steps {
                 echo "Build Docker image ${params.IMAGE}"
-                sh "docker pull mongo:4.0"
-                sh "docker tag mongo:4.0 ${params.ARTIFACTORY_URL}/mongo:4.0"
+                sh "docker pull mongo:5.0"
+                sh "docker tag mongo:5.0 ${params.ARTIFACTORY_URL}/mongo:5.0"
                 sh "docker pull rocket.chat:4.8.1"
                 sh "docker tag rocket.chat ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
             }
@@ -39,14 +47,18 @@ pipeline {
             steps {
                 echo "Push Docker image to jFrog"
                 sh "docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}"
-                sh "docker push ${params.ARTIFACTORY_URL}/mongo:4.0"
+                sh "docker push ${params.ARTIFACTORY_URL}/mongo:5.0"
                 sh "docker push ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
                 sh "docker logout ${params.ARTIFACTORY_URL}"
             }
         }
-        stage('Prepare Server') {
+        stage('Base installation') {
+            when {
+                // Only deploy if the base installation is 'WITH_BASE_INSTALLATION'
+                expression { params.BASE_INSTALLATION == 'WITH_BASE_INSTALLATION' }
+            }
             steps {
-                echo "Prepare Server"
+                echo "Base installation on server"
                 catchError {
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo apt-get update && sudo apt-get install docker nginx -y'"
                 }
@@ -56,39 +68,51 @@ pipeline {
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo service nginx restart'"
             }
         }
-        stage('Deploy on Server') {
+        stage('Deploy on server') {
             steps {
-                echo "Deploy on Server"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}'"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker pull ${params.ARTIFACTORY_URL}/mongo:4.0'"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker pull ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1'"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker logout ${params.ARTIFACTORY_URL}'"
+                script {
+                    echo "Deploy on server"
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}'"
+                    if (params.MONGODB == 'REDEPLOY_MONGODB') {
+                        sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker pull ${params.ARTIFACTORY_URL}/mongo:5.0'"
+                    }
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker pull ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1'"
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker logout ${params.ARTIFACTORY_URL}'"
+                }
             }
         }
         stage('Stop previous instance on server') {
             steps {
-                echo "Stopping previous instances on server"
-                catchError {
+                script {
+                    echo "Stopping previous instances on server"
+                    catchError {
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker stop rocketchat'"
-                }
-                catchError {
-                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker stop db'"
+                    }
+                    if (params.MONGODB == 'REDEPLOY_MONGODB') {
+                        catchError {
+                            sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker stop db'"
+                        }
+                    }
                 }
             }
         }
         stage('Start new instance on server') {
             steps {
-                echo "Starting new images Server"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker run --rm --name db -d ${params.ARTIFACTORY_URL}/mongo:4.0 --smallfiles --replSet rs0 --oplogSize 128'"
-                sleep 5
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker exec -i db mongo --eval \"printjson(rs.initiate())\"'"
+                script {
+                    echo "Starting new images Server"
+                    if (params.MONGODB == 'REDEPLOY_MONGODB') {
+                        sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker run --rm --name db -d ${params.ARTIFACTORY_URL}/mongo:5.0 --replSet rs0 --oplogSize 128'"
+                        sleep 5
+                        sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker exec -i db mongo --eval \"printjson(rs.initiate())\"'"
+                    }
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker run --rm --name rocketchat -p 3000:3000 --link db --env ROOT_URL=http://localhost --env MONGO_OPLOG_URL=mongodb://db:27017/local -d ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1'"
                 sleep 60
+                }
             }
         }
-        stage('Function Test') {
+        stage('Function test') {
             steps {
-                echo "Function Test"
+                echo "Function test"
                 sh "wget --no-check-certificate https://${params.SERVER_FQDN}/"
                 sh "rm index.html"
 
