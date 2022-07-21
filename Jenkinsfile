@@ -6,11 +6,11 @@ pipeline {
     }
     parameters {
         choice(name: 'BASE_INSTALLATION',
-            choices: ['WITH_BASE_INSTALLATION', 'NO'],
+            choices: ['NO','WITH_BASE_INSTALLATION'],
             description: 'Choose to install the base installation on the server')
 
         choice(name: 'MONGODB',
-            choices: ['REDEPLOY_MONGODB', 'NO'],
+            choices: ['NO','REDEPLOY_MONGODB'],
             description: 'Choose to redeploy the mongodb on the server (loose user data)')
 
         string(name: 'ARTIFACTORY_URL',
