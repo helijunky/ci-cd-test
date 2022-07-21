@@ -34,7 +34,7 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/helijunky/ci-cd-test.git'
             }
         }
-        stage('Build Docker image') {
+        stage('Pull Docker images') {
             steps {
                 echo "Build Docker image ${params.IMAGE}"
                 sh "docker pull mongo:5.0"
@@ -43,7 +43,7 @@ pipeline {
                 sh "docker tag rocket.chat ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
             }
         }
-        stage('Push Docker image to jFrog') {
+        stage('Push Docker images to jFrog') {
             steps {
                 echo "Push Docker image to jFrog"
                 sh "docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}"
