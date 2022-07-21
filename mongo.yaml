@@ -18,7 +18,7 @@ metadata:
   name: rocketmongo
 spec:
   serviceName: rocketmongo
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
       app: rocketmongo
@@ -30,7 +30,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
         - name: rocketmongo
-          image: mongo:5.0
+          image: ptt-docker-local.bin.swisscom.com/mongo:5.0
           command:
           - mongod
           - "--bind_ip_all"
