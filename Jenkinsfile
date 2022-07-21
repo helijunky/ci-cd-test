@@ -89,6 +89,7 @@ pipeline {
             steps {
                 script {
                     echo "Deploy with k8s on server"
+                    sh "docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}"
                     if (params.MONGODB == 'REDEPLOY_MONGODB') {
                         sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'kubectl apply -f https://raw.githubusercontent.com/helijunky/ci-cd-test/k8s/mongo.yaml'"
                         sleep 90
@@ -99,6 +100,7 @@ pipeline {
                     PROXY_URL = (sh(script: "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'minikube service rocketchat-server --url'", returnStdout: true)).trim()
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo sed -i \"/proxy_pass/c\\\\            proxy_pass $PROXY_URL/;\" /etc/nginx/sites-available/default'"
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo service nginx configtest && sudo service nginx restart'"
+                    sh "docker logout ${params.ARTIFACTORY_URL}"
                 }
             }
         }
