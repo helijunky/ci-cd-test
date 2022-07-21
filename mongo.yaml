@@ -30,7 +30,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
         - name: rocketmongo
-          image: ptt-docker-local.bin.swisscom.com/mongo:5.0
+          image: mongo:5.0
           command:
           - mongod
           - "--bind_ip_all"
