@@ -13,9 +13,13 @@ pipeline {
                defaultValue: 'ptt-docker-local.bin.swisscom.com',
                description: 'Artifactory URL')
 
-        string(name: 'SERVER_URL',
-               defaultValue: 'ubuntu@ec2-3-68-39-76.eu-central-1.compute.amazonaws.com',
-               description: 'user@server Address for ssh connection')
+        string(name: 'SSH_USER',
+               defaultValue: 'ubuntu',
+               description: 'user for ssh connection')
+
+        string(name: 'SERVER_FQDN',
+               defaultValue: 'SERVER_FQDN',
+               description: 'Server address for ssh connection')
     }
     
     stages {
@@ -44,15 +48,15 @@ pipeline {
         stage('Deploy on Server') {
             steps {
                 echo "Deploy on Server"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}'"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker pull ${params.ARTIFACTORY_URL}/${params.IMAGE}'"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker logout ${params.ARTIFACTORY_URL}'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker pull ${params.ARTIFACTORY_URL}/${params.IMAGE}'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker logout ${params.ARTIFACTORY_URL}'"
             }
         }
         stage('Start on Server') {
             steps {
                 echo "Start on Server"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SERVER_URL} 'docker run --rm ${params.ARTIFACTORY_URL}/${params.IMAGE}'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'docker run --rm ${params.ARTIFACTORY_URL}/${params.IMAGE}'"
             }
         }
         stage('Function Test') {
