@@ -9,10 +9,6 @@ pipeline {
             choices: ['NO','WITH_BASE_INSTALLATION'],
             description: 'Choose to install the base installation on the server')
 
-        choice(name: 'MONGODB',
-            choices: ['NO','REDEPLOY_MONGODB'],
-            description: 'Choose to redeploy the mongodb on the server (loose user data)')
-
         string(name: 'ARTIFACTORY_URL',
                defaultValue: 'ptt-docker-local.bin.swisscom.com',
                description: 'Artifactory URL')
@@ -82,23 +78,23 @@ pipeline {
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'curl -LO \"https://dl.k8s.io/\$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256\"'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo systemctl enable docker && sudo systemctl start docker'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo snap install helm --classic'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm repo add rocketchat-server https://rocketchat.github.io/helm-charts && helm repo update'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'minikube start'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'minikube addons enable ingress'"
+                sleep 10
             }
         }
-        stage('Deploy with k8s on server') {
+        stage('Deploy with helm on server') {
             steps {
                 script {
-                    echo "Deploy with k8s on server"
-                    if (params.MONGODB == 'REDEPLOY_MONGODB') {
-                        sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'kubectl apply -f https://raw.githubusercontent.com/helijunky/ci-cd-test/k8s/mongo.yaml'"
-                        sleep 90
-                        sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'kubectl exec -it rocketmongo-0 -- mongo --eval \"printjson(rs.initiate())\"'"
-                    }
-                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'kubectl apply -f https://raw.githubusercontent.com/helijunky/ci-cd-test/k8s/rocketchat.yaml'"
+                    echo "Deploy with helm on server"
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm install engel-rocketchat rocketchat-server/rocketchat --set mongodb.auth.password=abc1234567890 --set mongodb.auth.rootPassword=xyz0987654321 --set ingress.enabled=true'"
                     sleep 90
-                    PROXY_URL = (sh(script: "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'minikube service rocketchat-server --url'", returnStdout: true)).trim()
-                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo sed -i \"/proxy_pass/c\\\\            proxy_pass $PROXY_URL/;\" /etc/nginx/sites-available/default'"
+                    PROXY_URL = (sh(script: "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'kubectl get ingress | grep engel-rocketchat-rocketchat | awk -F \" \" \'{print \$4}\''", returnStdout: true)).trim()
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo sed -i \"/proxy_pass/c\\\\            proxy_pass http://$PROXY_URL:80/;\" /etc/nginx/sites-available/default'"
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo service nginx configtest && sudo service nginx restart'"
+                    sleep 5
                 }
             }
         }
