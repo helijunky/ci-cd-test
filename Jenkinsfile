@@ -23,31 +23,6 @@ pipeline {
     }
     
     stages {
-        stage('Git checkout') {
-            steps {
-                echo "Git checkout (for demonstration only)"
-                sh 'git --version'
-                git branch: 'helm', url: 'https://github.com/helijunky/ci-cd-test.git'
-            }
-        }
-        stage('Pull Docker images') {
-            steps {
-                echo "Build Docker image ${params.IMAGE}"
-                sh "docker pull mongo:5.0"
-                sh "docker tag mongo:5.0 ${params.ARTIFACTORY_URL}/mongo:5.0"
-                sh "docker pull rocket.chat:4.8.1"
-                sh "docker tag rocket.chat ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
-            }
-        }
-        stage('Push Docker images to jFrog') {
-            steps {
-                echo "Push Docker image to jFrog"
-                sh "docker login ${params.ARTIFACTORY_URL} --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW}"
-                sh "docker push ${params.ARTIFACTORY_URL}/mongo:5.0"
-                sh "docker push ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
-                sh "docker logout ${params.ARTIFACTORY_URL}"
-            }
-        }
         stage('Base installation') {
             when {
                 // Only deploy if the base installation is 'WITH_BASE_INSTALLATION'
@@ -79,7 +54,8 @@ pipeline {
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo systemctl enable docker && sudo systemctl start docker'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo snap install helm --classic'"
-                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm repo add rocketchat-server https://rocketchat.github.io/helm-charts && helm repo update'"
+                //sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm repo add rocketchat-server https://rocketchat.github.io/helm-charts && helm repo update'"
+                sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm repo add rocketchat-server https://bin.swisscom.com/artifactory/ptt-helm-local --username ${env.ARTIFACTORY_LOGIN_USR} --password ${env.ARTIFACTORY_LOGIN_PSW} && helm repo update'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'minikube start'"
                 sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'minikube addons enable ingress'"
                 sleep 10
