@@ -1,2 +1,2 @@
 # ci-cd-test Jenkins Pipeline
-03_deploy-rocketchat-k8s
+04_deploy-rocketchat-helm
