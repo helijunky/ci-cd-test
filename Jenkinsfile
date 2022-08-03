@@ -89,12 +89,12 @@ pipeline {
             steps {
                 script {
                     echo "Deploy with helm on server"
-                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm install engel-rocketchat rocketchat-server/rocketchat --set mongodb.auth.password=abc1234567890 --set mongodb.auth.rootPassword=xyz0987654321 --set ingress.enabled=true'"
+                    sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'helm upgrade --install engel-rocketchat rocketchat-server/rocketchat --set mongodb.auth.password=abc1234567890 --set mongodb.auth.rootPassword=xyz0987654321 --set ingress.enabled=true'"
                     sleep 90
-                    PROXY_URL = (sh(script: "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'kubectl get ingress | grep engel-rocketchat-rocketchat | awk -F \" \" \'{print \$4}\''", returnStdout: true)).trim()
+                    PROXY_URL = (sh(script: "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} \"kubectl get ingress | grep engel-rocketchat-rocketchat | awk -F ' ' '{print \$ 4}'\"", returnStdout: true)).trim()
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo sed -i \"/proxy_pass/c\\\\            proxy_pass http://$PROXY_URL:80/;\" /etc/nginx/sites-available/default'"
                     sh "ssh -o StrictHostKeyChecking=no -i ${env.SERVER_LOGIN} ${params.SSH_USER}@${params.SERVER_FQDN} 'sudo service nginx configtest && sudo service nginx restart'"
-                    sleep 5
+                    sleep 30
                 }
             }
         }
