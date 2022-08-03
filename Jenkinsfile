@@ -27,7 +27,7 @@ pipeline {
             steps {
                 echo "Git checkout (for demonstration only)"
                 sh 'git --version'
-                git branch: 'main', url: 'https://github.com/helijunky/ci-cd-test.git'
+                git branch: 'helm', url: 'https://github.com/helijunky/ci-cd-test.git'
             }
         }
         stage('Pull Docker images') {
