@@ -1,0 +1,11 @@
+---
+  - name: "display files"
+    hosts: nodes
+
+    tasks:
+      - name: "ping"
+        ping:
+      - name: "find files"
+        find:
+          path: /
+          file_type: directory
