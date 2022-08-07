@@ -1,5 +1,5 @@
 ---
-  - name: "display files"
+  - name: "Test Playbook"
     hosts: nodes
 
     tasks:
@@ -9,3 +9,12 @@
         find:
           path: /
           file_type: directory
+      - name: "deploy nginx docker container"
+        docker_container:
+          image: nginx:stable
+          name: nginx
+          state: started
+          auto_remove: true
+          ports:
+            - "8080:80"
+            
