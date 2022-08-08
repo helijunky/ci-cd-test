@@ -5,7 +5,7 @@
     tasks:
   - name: Log into bin.swisscom.com
       docker_login:
-        registry: bin.swisscom.com
+        registry: ptt-docker-local.bin.swisscom.com
         username: USER
         password: PASSWD
   - name: "deploy nginx docker container"
