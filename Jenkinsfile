@@ -11,7 +11,7 @@ pipeline {
         stage('Execute ansible playbook') {
             steps {
                 echo "Execute ansible playbook using plugin"
-                ansiblePlaybook credentialsId: 'linux', disableHostKeyChecking: true, extras: '-v', installation: 'ansible', inventory: 'hosts', playbook: 'simple-test.yml'
+                ansiblePlaybook credentialsId: 'linux', disableHostKeyChecking: true, extras: '-v', installation: 'ansible', inventory: 'hosts', playbook: 'docker.yml'
             }
         }
     }
