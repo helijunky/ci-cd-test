@@ -1,0 +1,19 @@
+---
+  - name: "Docker deployment"
+    hosts: nodes
+
+    tasks:
+  - name: Log into bin.swisscom.com
+      docker_login:
+        registry: bin.swisscom.com
+        username: USER
+        password: PASSWD
+  - name: "deploy nginx docker container"
+        docker_container:
+          image: nginx:stable
+          name: nginx
+          state: started
+          auto_remove: true
+          ports:
+            - "8080:80"
+            
