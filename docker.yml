@@ -5,7 +5,7 @@
     tasks:
   - name: "Log into bin.swisscom.com"
       docker_login:
-        registry: ptt-docker-local.bin.swisscom.com
+        registry_url: ptt-docker-local.bin.swisscom.com
         username: ARTIFACTORY_LOGIN_USR
         password: ARTIFACTORY_LOGIN_PSW
   - name: "deploy nginx docker container"
