@@ -1,2 +1,2 @@
 # ci-cd-test Jenkins Pipeline
-01_docker-run-from-bin-swisscom
+01_docker-hello-world-from-bin-swisscom
