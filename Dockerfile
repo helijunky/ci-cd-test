@@ -1,2 +1,2 @@
 FROM alpine
-CMD ["echo", "Hello again Jenkins. Now it works! Ciao"]
+CMD ["echo", "Hello Team Engel! This is your first docker image."]
