@@ -34,7 +34,7 @@ pipeline {
             steps {
                 echo "Build Docker image ${params.IMAGE}"
                 sh "docker build -t ${params.ARTIFACTORY_URL}/${params.IMAGE} ."
-                sh "docker run --rm ${params.ARTIFACTORY_URL}/${params.IMAGE}"
+                //sh "docker run --rm ${params.ARTIFACTORY_URL}/${params.IMAGE}"
             }
         }
         stage('Push Docker image to jFrog') {
