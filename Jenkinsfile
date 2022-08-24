@@ -40,7 +40,7 @@ pipeline {
                 sh "docker pull mongo:5.0"
                 sh "docker tag mongo:5.0 ${params.ARTIFACTORY_URL}/mongo:5.0"
                 sh "docker pull rocket.chat:4.8.1"
-                sh "docker tag rocket.chat ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
+                sh "docker tag rocket.chat:4.8.1 ${params.ARTIFACTORY_URL}/rocket.chat:4.8.1"
             }
         }
         stage('Push Docker images to jFrog') {
